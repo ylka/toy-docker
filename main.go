@@ -12,7 +12,7 @@ func main() {
 
 	app := &cli.Command{}
 	app.Name = "toy-docker"
-	app.Usage = ""
+	app.Usage = "my toy docker cli"
 
 	app.Commands = []*cli.Command{
 		&initCommand,

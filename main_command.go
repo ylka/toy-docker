@@ -10,7 +10,8 @@ import (
 )
 
 var initCommand = cli.Command{
-	Name: "run",
+	Name:  "run",
+	Usage: "run a container",
 	Flags: []cli.Flag{
 		&cli.BoolFlag{
 			Name:  "it",
@@ -31,7 +32,9 @@ var initCommand = cli.Command{
 }
 
 var runCommand = cli.Command{
-	Name: "init", Action: func(ctx context.Context, c *cli.Command) error {
+	Name:  "init",
+	Usage: "init something",
+	Action: func(ctx context.Context, c *cli.Command) error {
 		log.Infof("init come on")
 		cmd := c.Args().Get(0)
 		log.Infof("command %s", cmd)
