@@ -2,16 +2,33 @@ package main
 
 import (
 	"os"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/ylka/toy-docker/container"
 )
 
-func Run(tty bool, cmd string) {
-	parent := container.NewParentProcess(tty, cmd)
-	if err := parent.Start(); err != nil {
-		log.Error(err)
+func Run(tty bool, cmdArray []string) {
+	parent, writePipe := container.NewParentProcess(tty)
+	if parent == nil {
+		log.Errorf("New parent process error")
+		return
 	}
+	if err := parent.Start(); err != nil {
+		log.Errorf("Run parent.Start err:%v", err)
+	}
+
+	sendInitCommand(cmdArray, writePipe)
+
 	_ = parent.Wait()
-	os.Exit(-1)
+}
+
+func sendInitCommand(cmdArray []string, writePipe *os.File) {
+	command := strings.Join(cmdArray, " ")
+	log.Infof("command all is %s", command)
+	_, err := writePipe.WriteString(command)
+	if err != nil {
+		log.Errorf("Write pipe error:%v", err)
+	}
+	writePipe.Close()
 }
