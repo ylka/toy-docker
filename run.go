@@ -5,10 +5,12 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/ylka/toy-docker/cgroups"
+	"github.com/ylka/toy-docker/cgroups/subsystems"
 	"github.com/ylka/toy-docker/container"
 )
 
-func Run(tty bool, cmdArray []string) {
+func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig) {
 	parent, writePipe := container.NewParentProcess(tty)
 	if parent == nil {
 		log.Errorf("New parent process error")
@@ -17,6 +19,11 @@ func Run(tty bool, cmdArray []string) {
 	if err := parent.Start(); err != nil {
 		log.Errorf("Run parent.Start err:%v", err)
 	}
+
+	cgroupManager := cgroups.NewCgroupManager("toy-docker")
+	defer cgroupManager.Destroy()
+	cgroupManager.Set(res)
+	cgroupManager.Apply(parent.Process.Pid, res)
 
 	sendInitCommand(cmdArray, writePipe)
 
