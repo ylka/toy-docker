@@ -32,7 +32,7 @@ func (s *CpuSubSystem) Set(cgroupPath string, res *ResourceConfig) error {
 	}
 
 	if err := os.WriteFile(
-		path.Join(subsysCgroupPath, "cgroup.subtree_control"),
+		path.Join(constant.SubsysCgroupPath, "cgroup.subtree_control"),
 		[]byte("+cpu"),
 		constant.Perm0644); err != nil {
 		return fmt.Errorf("set cgroup +cpu fail %v", err)

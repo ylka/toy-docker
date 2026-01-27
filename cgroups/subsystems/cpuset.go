@@ -24,6 +24,14 @@ func (s *CpusetSubSystem) Set(cgroupPath string, res *ResourceConfig) error {
 	if err != nil {
 		return err
 	}
+
+	if err := os.WriteFile(
+		path.Join(constant.SubsysCgroupPath, "cgroup.subtree_control"),
+		[]byte("+cpuset"),
+		constant.Perm0644); err != nil {
+		return fmt.Errorf("set cgroup +cpuset fail %v", err)
+	}
+
 	// 必须先写 mems
 	if err := os.WriteFile(path.Join(subsysCgroupPath, "cpuset.mems"), []byte("0"),
 		constant.Perm0644); err != nil {
