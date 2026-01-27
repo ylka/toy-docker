@@ -10,8 +10,9 @@ import (
 )
 
 var initCommand = cli.Command{
-	Name:  "run",
-	Usage: "run a container",
+	Name: "run",
+	Usage: `Create a container with namespace and cgroups limit
+			toy-docker run -it [command]`,
 	Flags: []cli.Flag{
 		&cli.BoolFlag{
 			Name:  "it",
@@ -19,7 +20,7 @@ var initCommand = cli.Command{
 		},
 	},
 	Action: func(ctx context.Context, c *cli.Command) error {
-		if len(c.Arguments) < 1 {
+		if c.Args().Len() < 1 {
 			return fmt.Errorf("missing container command")
 		}
 
