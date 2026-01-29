@@ -5,16 +5,59 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 	"syscall"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/ylka/toy-docker/constant"
 )
 
-func NewWorkSpace(rootPath string) {
+func NewWorkSpace(rootPath, volume string) {
 	createLower(rootPath)
 	createDirs(rootPath)
 	mountOverlayFS(rootPath)
+
+	if volume != "" {
+		mntPath := path.Join(rootPath, "merged")
+		hostPath, containerPath, err := volumeExtract(volume)
+		if err != nil {
+			log.Errorf("volume invalid %v", err)
+			return
+		}
+
+		mountVolume(mntPath, hostPath, containerPath)
+	}
+}
+
+func mountVolume(mntPath, hostPath, containerPath string) {
+	if err := os.Mkdir(hostPath, constant.Perm0777); err != nil {
+		log.Infof("mkdir host dir [%s] failed. %v", containerPath, err)
+	}
+
+	containerPathInHost := path.Join(mntPath, containerPath)
+	if err := os.Mkdir(containerPathInHost, constant.Perm0777); err != nil {
+		log.Infof("mkdir container dir [%s] failed. %v", containerPath, err)
+	}
+
+	cmd := exec.Command("mount", "-o", "bind", hostPath, containerPathInHost)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	if err := cmd.Run(); err != nil {
+		log.Errorf("mount volume failed. %v", err)
+	}
+}
+
+func volumeExtract(volume string) (string, string, error) {
+	parts := strings.Split(volume, ":")
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("invalid volum [%s], must split by `:`", volume)
+	}
+	sourcePath, destPath := parts[0], parts[1]
+	if sourcePath == "" || destPath == "" {
+		return "", "", fmt.Errorf("invalid volume [%s], path can't be empty ", volume)
+	}
+
+	return sourcePath, destPath, nil
 }
 
 func mountOverlayFS(rootPath string) {
@@ -72,9 +115,31 @@ func PathExists(path string) (bool, error) {
 	return false, err
 }
 
-func DeleteWorkSpace(rootPath string) {
-	unmountOverlayFS(path.Join(rootPath, "merged"))
+func DeleteWorkSpace(rootPath, volume string) {
+	mntPath := path.Join(rootPath, "merged")
+
+	if volume != "" {
+		_, containerPath, err := volumeExtract(volume)
+		if err != nil {
+			log.Errorf("volume invalid %v", err)
+			return
+		}
+
+		umountVolume(mntPath, containerPath)
+	}
+
+	unmountOverlayFS(mntPath)
 	deleteDirs(rootPath)
+}
+
+func umountVolume(mntPath, containerPath string) {
+	containerPathInHost := path.Join(mntPath, containerPath)
+	cmd := exec.Command("umount", containerPathInHost)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	if err := cmd.Run(); err != nil {
+		log.Errorf("umount volume failed. %v", err)
+	}
 }
 
 func deleteDirs(rootPath string) {
@@ -87,6 +152,8 @@ func deleteDirs(rootPath string) {
 		if err := os.RemoveAll(dir); err != nil {
 			log.Infof("remove dir %s fail, %v ", dir, err)
 		}
+
+		log.Infof("remove dir %s.", dir)
 	}
 }
 
@@ -99,7 +166,7 @@ func unmountOverlayFS(mntPath string) {
 	}
 }
 
-func NewParentProcess(tty bool) (*exec.Cmd, *os.File) {
+func NewParentProcess(tty bool, volume string) (*exec.Cmd, *os.File) {
 	readPipe, writePipe, err := os.Pipe()
 	if err != nil {
 		log.Errorf("New pipe error %v", err)
@@ -122,7 +189,7 @@ func NewParentProcess(tty bool) (*exec.Cmd, *os.File) {
 	cmd.ExtraFiles = []*os.File{readPipe}
 
 	rootPath := constant.RootPath
-	NewWorkSpace(rootPath)
+	NewWorkSpace(rootPath, volume)
 	cmd.Dir = path.Join(rootPath, "merged")
 
 	return cmd, writePipe

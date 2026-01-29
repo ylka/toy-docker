@@ -11,8 +11,8 @@ import (
 	"github.com/ylka/toy-docker/container"
 )
 
-func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig) {
-	parent, writePipe := container.NewParentProcess(tty)
+func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume string) {
+	parent, writePipe := container.NewParentProcess(tty, volume)
 	if parent == nil {
 		log.Errorf("New parent process error")
 		return
@@ -30,7 +30,7 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig) {
 
 	_ = parent.Wait()
 
-	container.DeleteWorkSpace(constant.RootPath)
+	container.DeleteWorkSpace(constant.RootPath, volume)
 }
 
 func sendInitCommand(cmdArray []string, writePipe *os.File) {

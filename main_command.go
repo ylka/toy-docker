@@ -31,6 +31,10 @@ var runCommand = cli.Command{
 			Name:  "cpuset",
 			Usage: "cpuset quota, e.g.: -cpuset 2,4",
 		},
+		&cli.StringFlag{
+			Name:  "v",
+			Usage: "volume, e.g.: -v /etc/conf:/etc/conf",
+		},
 	},
 	Action: func(ctx context.Context, c *cli.Command) error {
 		if c.Args().Len() < 1 {
@@ -48,7 +52,9 @@ var runCommand = cli.Command{
 			CpuSet:      c.String("cpuset"),
 		}
 
-		Run(tty, cmdArray, resConf)
+		volume := c.String("v")
+
+		Run(tty, cmdArray, resConf, volume)
 		return nil
 	},
 }
