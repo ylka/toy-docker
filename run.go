@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/ylka/toy-docker/cgroups"
 	"github.com/ylka/toy-docker/cgroups/subsystems"
+	"github.com/ylka/toy-docker/constant"
 	"github.com/ylka/toy-docker/container"
 )
 
@@ -28,6 +29,8 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig) {
 	sendInitCommand(cmdArray, writePipe)
 
 	_ = parent.Wait()
+
+	container.DeleteWorkSpace(constant.RootPath)
 }
 
 func sendInitCommand(cmdArray []string, writePipe *os.File) {
